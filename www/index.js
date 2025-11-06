@@ -1,4 +1,5 @@
 document.getElementById('FileInput').addEventListener('change', handleFileUpload);
+document.getElementById('defaultExample').addEventListener('click', handleExample);
 let plot;
 const preds = [];
 const labelNames = [
@@ -33,11 +34,6 @@ const n_outputs = labelNames.length;
 const expectedHeader = [
   'acc_x', 'acc_y', 'acc_z',
 ];
-const ws = 2.56;
-const sample_freq = 50;
-const window_size = 128;
-const step_size = window_size;
-const n_channels = 3;
 const HeapTypes = {
   "int8":    { ArrayType: Int8Array,   Heap: () => Module.HEAP8,    n_bytes: 1 },
   "int16":   { ArrayType: Int16Array,  Heap: () => Module.HEAP16,   n_bytes: 2 },
@@ -47,6 +43,18 @@ const HeapTypes = {
 // global data type
 const DATA_TYPE = "float32";
 const T = HeapTypes[DATA_TYPE];
+// Assign hard-coded values
+let sample_freq = 50;
+let window_size = 128;
+let step_size = window_size;
+let n_channels = 3;
+
+async function handleExample() {
+  const response = await fetch('./accsamp.dat');
+  const blob = await response.blob();
+  const file = new File([blob], 'accsamp.dat');
+  handleFileUpload({ target: { files: [file] } });
+}
 // helper func
 function allocAndCopy(bytes) {
   let arr = new T.ArrayType(bytes);
@@ -120,10 +128,7 @@ async function handleFileUpload(event) {
 	//    const pred = doClassify(segment.flat()); // Classify via WASM
 	//    preds.push({ time: i * step_size, label: pred });
   //}
-	
-	const scale = 1.0//32767.0;
-	const maxVal = 1.0//5.0;
-	rows = rows.map(row => row.map(v => v / (scale/maxVal)));
+
 	drawSignal(rows);
 	async function doClassifyAsync(segments) {
 		const update_plt_flag = document.getElementById("live-update");
@@ -160,7 +165,8 @@ async function handleFileUpload(event) {
 // Source: https://github.com/kristofvl/wesadviz/
 function drawSignal(rows) {
   // Convert data to uPlot format for plotting
-  const timeArray = rows.map((_, i) => i);
+	const scale = 3600; // 60 for minutes, 3600 for hours
+	const timeArray = rows.map((_, i) => i / sample_freq / scale);
   const acc_x = rows.map(row => row[0]);
   const acc_y = rows.map(row => row[1]);
   const acc_z = rows.map(row => row[2]);
@@ -171,8 +177,8 @@ function drawSignal(rows) {
     (u) => {
       for (let i = 0; i < preds.length; i++) {
         const pred = preds[i];
-        const startTime = pred.time;
-        const endTime = (i + 1 < preds.length) ? preds[i + 1].time : pred.time + step_size;
+				const startTime = pred.time / sample_freq / scale;
+				const endTime = ((i + 1 < preds.length) ? preds[i + 1].time : pred.time + step_size) / sample_freq / scale;
         const fill = labelColors[labelNames[pred.label]] || "gray"; 
         const startPos = u.valToPos(startTime, "x", true);
         const endPos = u.valToPos(endTime, "x", true);
@@ -223,7 +229,7 @@ function drawSignal(rows) {
       y: false,
     },
     axes: [
-      { label: "Time" },
+      { label: "Time (hrs)" },
       { label: "Signal", scale: "y", side: 1, grid: { show: true } }
     ],
     scales: {
@@ -313,8 +319,18 @@ function doLoadData() {
   (async () => {
     try {
 
+      // Load meta_data
+      let response = await fetch("./meta_data.json");
+      if (!response.ok) throw new Error(`Problem downloading meta_data (${response.status})`);
+			let metadata = await response.json();
+			// Overwrite with values from metadata
+			sample_freq = metadata.fs;
+			window_size = metadata.ws;
+			step_size = window_size;
+			n_channels = metadata.n_channels;
+
       // Load conv1 weights
-      let response = await fetch("./conv1_weight.data");
+      response = await fetch("./conv1_weight.data");
       if (!response.ok) throw new Error(`Problem downloading conv1_weight (${response.status})`);
       let bytes = await response.arrayBuffer();
 			conv1_w_ptr = allocAndCopy(bytes);

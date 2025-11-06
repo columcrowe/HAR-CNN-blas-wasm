@@ -5,7 +5,7 @@ LFORT_RUNTIME := /root/lfortran/inst/share/lfortran/lib/lfortran_runtime_wasm_em
 SRC := classifier.f90
 OBJ := $(SRC:.f90=.o)
 
-JS_OUT := www/mnist.js
+JS_OUT := www/main.js
 
 EMCC_FLAGS := \
     --target=wasm32-unknown-emscripten \
@@ -15,7 +15,7 @@ EMCC_FLAGS := \
     -sALLOW_MEMORY_GROWTH=1 \
     --no-entry \
     -sEXPORTED_FUNCTIONS=['_classifier','_malloc','_free'] \
-    -sEXPORTED_RUNTIME_METHODS=['HEAP16','HEAPF32'] #'HEAPF64','HEAP8'
+    -sEXPORTED_RUNTIME_METHODS=['HEAPF32'] #'HEAP16','HEAPF64','HEAP8'
 
 all: $(JS_OUT)
 

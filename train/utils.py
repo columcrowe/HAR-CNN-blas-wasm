@@ -4,7 +4,9 @@ import pandas as pd
 import numpy as np
 from scipy.signal import butter, besselap, zpk2ss, ss2tf, lp2lp, lfilter, filtfilt, resample, resample_poly
 import os
-#import json
+import json
+import traceback
+import sys
 
 def resample_2(accel_array, data_time, resampling_frequency=50.0):
     #Resample to resampling_frequency (Hz)
@@ -108,15 +110,16 @@ def convert_cwa_to_csv(input_file):
     # 'accel' key contains acceleration data as (N x 3) ndarray in units of g
     accel_array = np.asarray(data.get('accel'), dtype=np.float32)
     time_array = np.asarray(data.get('time'))
-    
-    #TODO: crop to n hrs for now
-    n=36;
-    accel_array = accel_array[0:50*60*60*n,:] 
 
     #Resample to resampling_frequency (Hz)
-    fs = 50.0;
+    dfs = 50;
+    fs = float(dfs);
     accel_array, time_array = resample_2fast(accel_array, time_array, resampling_frequency=fs)
-    ws=128
+    ws=128#
+    
+    #TODO: crop to n hrs for now
+    #n=24;
+    #accel_array = accel_array[0:min(dfs*60*60*n,len(accel_array)),:] 
        
     df = pd.DataFrame(accel_array, columns=['acc_x', 'acc_y', 'acc_z'])
     filename = f"accsamp.csv"
@@ -143,29 +146,31 @@ def convert_cwa_to_bin(input_file):
     # 'accel' key contains acceleration data as (N x 3) ndarray in units of g
     accel_array = np.asarray(data.get('accel'), dtype=np.float32)
     time_array = np.asarray(data.get('time'))
-    
-    #TODO: crop to n hrs for now
-    n=36;
-    accel_array = accel_array[0:50*60*60*n,:] 
 
     #Resample to resampling_frequency (Hz)
-    fs = 50.0;        
+    dfs = 50;
+    fs = float(dfs);
     accel_array, time_array = resample_2fast(accel_array, time_array, resampling_frequency=fs)
     ws=128
+    
+    #TODO: crop to n hrs for now
+    #n=24;
+    #accel_array = accel_array[0:min(dfs*60*60*n,len(accel_array)),:] 
 
     # save to binary instead
     filename = f"accsamp.dat"
     filepath = os.path.join(os.getcwd(), filename)   
     accel_array.tofile(filepath)
-    # # Save metadata
-    # metadata = {
-        # "n_channels": accel_array.shape[1],
-        # "dtype": "float32",
-        # "n_samples": accel_array.shape[0]
-    # }
-    # with open("meta_data.json", "w") as f:
-        # json.dump(metadata, f)
-    
+    # Save metadata
+    metadata = {
+        "fs": int(fs),
+        "ws": int(ws),        
+        "n_channels": int(accel_array.shape[1]),
+        "dtype": "float32",
+        "n_samples": accel_array.shape[0]
+    }
+    with open("meta_data.json", "w") as f:
+        json.dump(metadata, f)    
     return
 
 def preprocess(acc):
@@ -194,3 +199,11 @@ def load_A(filename, shape):
         numpy_array = np.frombuffer(f.read(), dtype=np.float32, count=np.prod(shape))
         numpy_array = numpy_array.reshape(shape, order='F')
     return numpy_array
+
+    
+if __name__ == '__main__':
+    try:
+        convert_cwa_to_bin(sys.argv[1])
+        #convert_cwa_to_csv(sys.argv[1])
+    except:
+        traceback.print_exc()

@@ -11,8 +11,13 @@
 	gap: 20px;               /* space between items */
 }
 
-#info label,
-#info input,
+#control {
+	display: flex;
+	flex-direction: column;  /* stack children vertically */
+	align-items: flex-end;    /* align right */
+	gap: 20px;               /* space between items */
+}
+
 #info progress,
 #info span {
 	width: 100%;             /* make all elements take full width of #info */

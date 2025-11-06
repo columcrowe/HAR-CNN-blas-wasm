@@ -10,15 +10,15 @@
 
 <body>
 	<div id="info">
-		<div>
-			<label for="FileInput" class="button-label">Upload File</label>
-			<input type="file" id="FileInput" accept=".csv" style="display: none;" />
-			<progress id="progressBar" value="0" max="100" style="width: 400px;"></progress>
-		  <span id="progressText"></span>
-		</div>
+		<progress id="progressBar" value="0" max="100" style="width: 50vw;"></progress>
+		<span id="progressText"></span>
 	</div>
-	<label style="float: right;"> <input type="checkbox" id="live-update" checked style="float: right;" /> Update Plot </label>
-	
+	<div id="control">
+		<button type="button" id="uploadFile" onclick="document.getElementById('FileInput').click()">Upload File</button>
+		<input type="file" id="FileInput" hidden style="display: none;" />
+	  <button type="button" id="defaultExample" >Load Example</button>
+	  <label style="float: right;"> <input type="checkbox" id="live-update" checked style="float: right;" /> Update Plot </label>
+	</div>
 	<div id="container">
 		<div id="draw"></div> <!-- populated by drawSignal !-->
 		<div id="hist"></div>		
@@ -39,7 +39,7 @@
       doAbort();
     };
   </script>
-  <script src="mnist.js"></script>
+  <script src="main.js"></script>
   <script src="index.js"></script>
 </body>
 
